@@ -27,154 +27,180 @@ Cell* world = new Cell[worldWidth * worldHeight];
 
 std::vector<Edge> vecEdges;
 //                          starting x,y width ,height ,
-
-void ConvertTileMapToPolyMap(int sx, int sy, int w, int h, float fBlockWidth, int pitch)
+void ConverttileMapToPolyMap(int sx,int sy,int w,int h,float cellSize,int pitch)
 {
-	// Clear "PolyMap"
-	vecEdges.clear();
+    vecEdges.clear();
+    for (int x = 0; x < w; x++)
+    {
+        for (int y = 0; y < h; y++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                world[(y + sy) * pitch + (x + sx)].edge_exist[j] = false;;
+                world[(y + sy) * pitch + (x + sx)].edge_id[j] = 0;
+            }
+        }
+    }
+        for(int x=1;x<w-1;x++)
+        {   for(int y=1;y<h-1;y++)
+            {
+            //converting 2d to 1d
+            int i = (y + sy) * pitch + (x + sy);    //current cell
+            int n = (y + sy - 1) * pitch + (x + sx);//norhtern neighbor
+            int s = (y + sy +1) * pitch + (x + sx); //southern neighbor
+            int w = (y + sy ) * pitch + (x + sx-1); //westeern nighbor
+            int e = (y + sy ) * pitch + (x + sx+1); //eastern neighbor
+            
+            //check if the cell exist
+            if(world[i].exist)
+            {   
 
-	for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++)
-			for (int j = 0; j < 4; j++)
-			{
-				world[(y + sy) * pitch + (x + sx)].edge_exist[j] = false;
-				world[(y + sy) * pitch + (x + sx)].edge_id[j] = 0;
-			}
-
-	// Iterate through region from top left to bottom right
-	for (int x = 1; x < w - 1; x++)
-		for (int y = 1; y < h - 1; y++)
-		{
-			// Create some convenient indices
-			int i = (y + sy) * pitch + (x + sx);			// This
-			int n = (y + sy - 1) * pitch + (x + sx);		// Northern Neighbour
-			int s = (y + sy + 1) * pitch + (x + sx);		// Southern Neighbour
-			int w = (y + sy) * pitch + (x + sx - 1);	// Western Neighbour
-			int e = (y + sy) * pitch + (x + sx + 1);	// Eastern Neighbour
-
-			// If this cell exists, check if it needs edges
-			if (world[i].exist)
-			{
-				// If this cell has no western neighbour, it needs a western edge
-				if (!world[w].exist)
-				{
-					// It can either extend it from its northern neighbour if they have
+                //if this cell has no western neighbor,it needsa western edge
+                if(!world[w].exist)
+                {   // It can either extend it from its northern neighbour if they have
 					// one, or It can start a new one.
-					if (world[n].edge_exist[WEST])
-					{
-						// Northern neighbour has a western edge, so grow it downwards
-						vecEdges[world[n].edge_id[WEST]].ey += fBlockWidth;
-						world[i].edge_id[WEST] = world[n].edge_id[WEST];
-						world[i].edge_exist[WEST] = true;
-					}
-					else
-					{
-						// Northern neighbour does not have one, so create one
-						Edge edge;
-						edge.sx = (sx + x) * fBlockWidth; edge.sy = (sy + y) * fBlockWidth;
-						edge.ex = edge.sx; edge.ey = edge.sy + fBlockWidth;
 
-						// Add edge to Polygon Pool
-						int edge_id = vecEdges.size();
-						vecEdges.push_back(edge);
+                    if (world[n].edge_exist[WEST]) // Norhtern neighbor has a western edge,so it grows downwards
+                    {
+                        vecEdges[world[n].edge_id[WEST]].ey += cellSize; //increasing the y axis  size to 1 block width down
+                        world[i].edge_id[WEST] = world[n].edge_id[WEST];
+                        world[i].edge_exist[WEST] = true;
+                    }
+                    
+                    else 
+                    {
+                        Edge edge;
+                        edge.sx = (sx + x) * cellSize;
+                        edge.sy = (sy + y) * cellSize;
 
-						// Update tile information with edge information
-						world[i].edge_id[WEST] = edge_id;
-						world[i].edge_exist[WEST] = true;
-					}
-				}
+                        edge.ex = edge.sx ;
+                        edge.ey = edge.sy + cellSize;
+                        int edge_id = vecEdges.size();
 
-				// If this cell dont have an eastern neignbour, It needs a eastern edge
-				if (!world[e].exist)
-				{
-					// It can either extend it from its northern neighbour if they have
-					// one, or It can start a new one.
-					if (world[n].edge_exist[EAST])
-					{
-						// Northern neighbour has one, so grow it downwards
-						vecEdges[world[n].edge_id[EAST]].ey += fBlockWidth;
-						world[i].edge_id[EAST] = world[n].edge_id[EAST];
-						world[i].edge_exist[EAST] = true;
-					}
-					else
-					{
-						// Northern neighbour does not have one, so create one
-						Edge edge;
-						edge.sx = (sx + x + 1) * fBlockWidth; edge.sy = (sy + y) * fBlockWidth;
-						edge.ex = edge.sx; edge.ey = edge.sy + fBlockWidth;
+                        vecEdges.push_back(edge);
 
-						// Add edge to Polygon Pool
-						int edge_id = vecEdges.size();
-						vecEdges.push_back(edge);
+                        world[i].edge_id[WEST] = edge_id;
+                        world[i].edge_exist[WEST] = true;
 
-						// Update tile information with edge information
-						world[i].edge_id[EAST] = edge_id;
-						world[i].edge_exist[EAST] = true;
-					}
-				}
+                    }
+                
+                }
 
-				// If this cell doesnt have a northern neignbour, It needs a northern edge
-				if (!world[n].exist)
-				{
-					// It can either extend it from its western neighbour if they have
-					// one, or It can start a new one.
-					if (world[w].edge_exist[NORTH])
-					{
-						// Western neighbour has one, so grow it eastwards
-						vecEdges[world[w].edge_id[NORTH]].ex += fBlockWidth;
-						world[i].edge_id[NORTH] = world[w].edge_id[NORTH];
-						world[i].edge_exist[NORTH] = true;
-					}
-					else
-					{
-						// Western neighbour does not have one, so create one
-						Edge edge;
-						edge.sx = (sx + x) * fBlockWidth; edge.sy = (sy + y) * fBlockWidth;
-						edge.ex = edge.sx + fBlockWidth; edge.ey = edge.sy;
 
-						// Add edge to Polygon Pool
-						int edge_id = vecEdges.size();
-						vecEdges.push_back(edge);
 
-						// Update tile information with edge information
-						world[i].edge_id[NORTH] = edge_id;
-						world[i].edge_exist[NORTH] = true;
-					}
-				}
+                //if this cell has no eastern neighbor,it needsa eastern edge
+                if (!world[e].exist)
+                {   // It can either extend it from its northern neighbour if they have
+                    // one, or It can start a new one.
 
-				// If this cell doesnt have a southern neignbour, It needs a southern edge
-				if (!world[s].exist)
-				{
-					// It can either extend it from its western neighbour if they have
-					// one, or It can start a new one.
-					if (world[w].edge_exist[SOUTH])
-					{
-						// Western neighbour has one, so grow it eastwards
-						vecEdges[world[w].edge_id[SOUTH]].ex += fBlockWidth;
-						world[i].edge_id[SOUTH] = world[w].edge_id[SOUTH];
-						world[i].edge_exist[SOUTH] = true;
-					}
-					else
-					{
-						// Western neighbour does not have one, so I need to create one
-						Edge edge;
-						edge.sx = (sx + x) * fBlockWidth; edge.sy = (sy + y + 1) * fBlockWidth;
-						edge.ex = edge.sx + fBlockWidth; edge.ey = edge.sy;
+                    if (world[n].edge_exist[EAST]) // Norhtern neighbor has an eastern  edge,so it grows downwards
+                    {
+                        vecEdges[world[n].edge_id[EAST]].ey += cellSize; //increasing the y axis  size to 1 block width down
+                        world[i].edge_id[EAST] = world[n].edge_id[EAST];
+                        world[i].edge_exist[EAST] = true;
+                    }
 
-						// Add edge to Polygon Pool
-						int edge_id = vecEdges.size();
-						vecEdges.push_back(edge);
+                    else
+                    {
+                        Edge edge;
+                        edge.sx = (sx + x+1) * cellSize;
+                        edge.sy = (sy + y) * cellSize;
 
-						// Update tile information with edge information
-						world[i].edge_id[SOUTH] = edge_id;
-						world[i].edge_exist[SOUTH] = true;
-					}
-				}
+                        edge.ex = edge.sx;
+                        edge.ey = edge.sy + cellSize;
+                        int edge_id = vecEdges.size();
 
-			}
+                        vecEdges.push_back(edge);
 
-		}
-}
+                        world[i].edge_id[EAST] = edge_id;
+                        world[i].edge_exist[EAST] = true;
+
+                    }
+
+                }
+
+
+
+
+                //if this cell has no northern neighbor,it needs  a noethern edge
+                if (!world[n].exist)
+                {   // It can either extend it from its northern neighbour if they have
+                    // one, or It can start a new one.
+
+                    if (world[w].edge_exist[NORTH]) // Norhtern neighbor has a western edge,so it grows downwards
+                    {
+                        vecEdges[world[w].edge_id[NORTH]].ex+= cellSize; //increasing the y axis  size to 1 block width down
+                        world[i].edge_id[NORTH] = world[w].edge_id[NORTH];
+                        world[i].edge_exist[NORTH] = true;
+                    }
+
+                    else
+                    {
+                        Edge edge;
+                        edge.sx = (sx + x) * cellSize;
+                        edge.sy = (sy + y) * cellSize;
+
+                        edge.ex = edge.sx + cellSize;
+                        edge.ey = edge.sy;
+                        int edge_id = vecEdges.size();
+
+                        vecEdges.push_back(edge);
+
+                        world[i].edge_id[NORTH] = edge_id;
+                        world[i].edge_exist[NORTH] = true;
+
+                    }
+
+                }
+
+
+
+
+                //if this cell has no southern neighbor,it needsa southern  edge
+                if (!world[s].exist)
+                {   // It can either extend it from its western neighbour if they have
+                    // one, or It can start a new one.
+
+                    if (world[w].edge_exist[SOUTH]) //if  western neighbor has a southern edge,so it grows downwards
+                    {
+                        vecEdges[world[w].edge_id[SOUTH]].ex += cellSize; //increasing the x axis  size to 1 block width down
+                        world[i].edge_id[SOUTH] = world[w].edge_id[SOUTH];
+                        world[i].edge_exist[SOUTH] = true;
+                    }
+
+                    else
+                    {
+                        Edge edge;
+                        edge.sx = (sx + x) * cellSize;
+                        edge.sy = (sy + y+1) * cellSize;
+
+                        edge.ex = edge.sx + cellSize;
+                        edge.ey = edge.sy ;
+                        int edge_id = vecEdges.size();
+
+                        vecEdges.push_back(edge);
+
+                        world[i].edge_id[SOUTH] = edge_id;
+                        world[i].edge_exist[SOUTH] = true;
+
+                    }
+
+                }
+
+            }
+
+
+
+            }
+        
+        
+        }
+        
+
+
+    }
+
+
 
 
 int main(void)
@@ -199,7 +225,7 @@ int main(void)
             world[i].exist = !world[i].exist;
         }
     
-		ConvertTileMapToPolyMap(0, 0, worldWidth, worldHeight, cellSize, worldWidth);
+            ConverttileMapToPolyMap(0, 0, worldWidth, worldHeight, cellSize, worldWidth);
       
 
 
